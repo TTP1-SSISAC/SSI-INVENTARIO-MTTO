@@ -295,11 +295,39 @@ tbody.innerHTML = rows.length ? rows.slice().reverse().map(m => `
 document.getElementById('historialFiltro').addEventListener('input', e => renderMantenimiento(e.target.value));
 
 function renderFallaCatalogo() {
+// Poblar selector de Placas (tractos + carretas)
+const selPlaca = document.getElementById('fallaPlaca');
+const placas = [
+...state.tracto.map(t => ({ placa: t['PLACA'] || t['Placa'] || '', tipo: 'Tracto' })),
+...state.carretas.map(c => ({ placa: c['PLACA'] || c['Placa'] || '', tipo: 'Carreta' }))
+].filter(p => p.placa);
+selPlaca.innerHTML = '<option value="">— Selecciona placa —</option>' +
+placas.map(p => `<option value="${p.placa}">${p.placa} (${p.tipo})</option>`).join('');
+
+// Poblar selector de Personal (conductores + personal)
+const selPersonal = document.getElementById('fallaPersonal');
+const personas = [
+...state.conductores.map(c => {
+const nom = [c['NOMBRES'], c['APELLIDOS']].filter(Boolean).join(' ') ||
+[c['Nombres'], c['Apellidos']].filter(Boolean).join(' ') || '';
+return nom;
+}),
+...state.personal.map(p => {
+const nom = [p['NOMBRES'], p['APELLIDOS']].filter(Boolean).join(' ') ||
+[p['Nombres'], p['Apellidos']].filter(Boolean).join(' ') || '';
+return nom;
+})
+].filter(n => n);
+selPersonal.innerHTML = '<option value="">— Selecciona personal —</option>' +
+personas.map(n => `<option value="${n}">${n}</option>`).join('');
+
+// Poblar selector de Sistema
 const sistemas = [...new Set(state.catalogoFallas.map(c => c['SISTEMA']))];
 const selSistema = document.getElementById('fallaSistema');
 selSistema.innerHTML = sistemas.map(s => `<option value="${s}">${s}</option>`).join('');
 updateComponentes();
 selSistema.addEventListener('change', updateComponentes);
+document.getElementById('fallaComponente').addEventListener('change', updateCodigo);
 }
 
 function updateComponentes() {
@@ -307,6 +335,13 @@ const sistema = document.getElementById('fallaSistema').value;
 const componentes = state.catalogoFallas.filter(c => c['SISTEMA'] === sistema);
 document.getElementById('fallaComponente').innerHTML =
 componentes.map(c => `<option value="${c['COMPONENTE']}" data-codigo="${c['CÓDIGO']}">${c['COMPONENTE']}</option>`).join('');
+updateCodigo();
+}
+
+function updateCodigo() {
+const compSel = document.getElementById('fallaComponente');
+const codigo = compSel.selectedOptions[0] ? compSel.selectedOptions[0].dataset.codigo || '' : '';
+document.getElementById('fallaCodigo').value = codigo;
 }
 
 function renderFallas() {
@@ -503,9 +538,7 @@ document.getElementById('formFalla').addEventListener('submit', async e => {
 e.preventDefault();
 const data = formToObject(e.target);
 data['SISTEMA'] = document.getElementById('fallaSistema').value;
-const compSel = document.getElementById('fallaComponente');
-data['COMPONENTE'] = compSel.value;
-data['CÓDIGO'] = compSel.selectedOptions[0] ? compSel.selectedOptions[0].dataset.codigo : '';
+data['COMPONENTE'] = document.getElementById('fallaComponente').value;
 try {
 await apiPost('addFalla', data);
 toast('Falla reportada correctamente', 'ok');
