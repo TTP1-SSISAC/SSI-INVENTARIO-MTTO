@@ -5,7 +5,7 @@
 
 const CONFIG = {
   // Pega aquí la URL de tu implementación de Apps Script (termina en /exec)
-  API_URL: 'PEGA_AQUI_TU_URL_DE_APPS_SCRIPT'
+  API_URL: 'https://script.google.com/macros/s/AKfycbxaKCoTYWztCeNX1mPtTvOc1vg9sR3DHBCIooo_WvsF5nhwBY75j9i72mr9bxeTEP4E/exec'
 };
 
 const state = {
