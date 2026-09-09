@@ -5,7 +5,7 @@
 
 const CONFIG = {
   // Pega aquí la URL de tu implementación de Apps Script (termina en /exec)
-  API_URL: 'https://script.google.com/macros/s/AKfycbxaKCoTYWztCeNX1mPtTvOc1vg9sR3DHBCIooo_WvsF5nhwBY75j9i72mr9bxeTEP4E/exec'
+  API_URL: 'PEGA_AQUI_TU_URL_DE_APPS_SCRIPT'
 };
 
 const state = {
@@ -181,8 +181,11 @@ function renderProductos() {
       <td>${p['Ubicación'] || '—'}</td>
       <td>${getStockDe(p['Código Producto'])}</td>
       <td>${p['Stock Mínimo']}</td>
-      <td>${p['Moneda'] || 'S/'} ${Number(p['Total'] || 0).toFixed(2)}</td>
-    </tr>`).join('') : `<tr class="empty-row"><td colspan="8">Aún no hay productos registrados.</td></tr>`;
+      <td>${p['Moneda'] || 'S/'}</td>
+      <td>${Number(p['Subtotal'] || 0).toFixed(2)}</td>
+      <td>${Number(p['IGV'] || 0).toFixed(2)}</td>
+      <td>${Number(p['Total'] || 0).toFixed(2)}</td>
+    </tr>`).join('') : `<tr class="empty-row"><td colspan="11">Aún no hay productos registrados.</td></tr>`;
 }
 
 function renderKardex(filtro = '') {
