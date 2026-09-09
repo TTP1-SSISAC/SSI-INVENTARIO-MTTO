@@ -124,6 +124,7 @@ renderMntDashboard();
 renderMantenimiento();
 renderFallaCatalogo();
 renderFallas();
+renderMantenimientoForm();
 }
 
 function fmtMoney(n) { return 'S/ ' + (Number(n) || 0).toFixed(2); }
@@ -342,6 +343,86 @@ function updateCodigo() {
 const compSel = document.getElementById('fallaComponente');
 const codigo = compSel.selectedOptions[0] ? compSel.selectedOptions[0].dataset.codigo || '' : '';
 document.getElementById('fallaCodigo').value = codigo;
+}
+
+// Nombres y métodos de reparación predeterminados (se amplían con el botón +)
+const _repNombresDefault = [
+'Cambio de aceite y filtros', 'Mantenimiento preventivo', 'Cambio de frenos',
+'Reparación de motor', 'Cambio de llantas', 'Revisión eléctrica',
+'Cambio de correa de distribución', 'Reparación de caja de cambios',
+'Cambio de amortiguadores', 'Reparación de sistema de refrigeración'
+];
+const _repMetodosDefault = [
+'MECÁNICO', 'ELÉCTRICO', 'HIDRÁULICO', 'NEUMÁTICO', 'ELECTRÓNICO'
+];
+
+function _addOpcionSelect(selId, promptMsg) {
+const val = window.prompt(promptMsg);
+if (!val || !val.trim()) return;
+const sel = document.getElementById(selId);
+const opt = document.createElement('option');
+opt.value = val.trim();
+opt.textContent = val.trim();
+sel.appendChild(opt);
+sel.value = val.trim();
+}
+
+function renderMantenimientoForm() {
+// ---- Placa ----
+const selPlaca = document.getElementById('repPlaca');
+if (selPlaca) {
+const placas = [
+...state.tracto.map(t => ({ placa: t['PLACA'] || t['Placa'] || '', tipo: 'Tracto' })),
+...state.carretas.map(c => ({ placa: c['PLACA'] || c['Placa'] || '', tipo: 'Carreta' }))
+].filter(p => p.placa);
+selPlaca.innerHTML = '<option value="">— Selecciona placa —</option>' +
+placas.map(p => `<option value="${p.placa}">${p.placa} (${p.tipo})</option>`).join('');
+}
+
+// ---- Técnico ----
+const selTecnico = document.getElementById('repTecnico');
+if (selTecnico) {
+const personas = [
+...state.personal.map(p =>
+([p['NOMBRES'], p['APELLIDOS']].filter(Boolean).join(' ') ||
+[p['Nombres'], p['Apellidos']].filter(Boolean).join(' ')).trim()
+),
+...state.conductores.map(c =>
+([c['NOMBRES'], c['APELLIDOS']].filter(Boolean).join(' ') ||
+[c['Nombres'], c['Apellidos']].filter(Boolean).join(' ')).trim()
+)
+].filter(n => n);
+selTecnico.innerHTML = '<option value="">— Selecciona técnico —</option>' +
+personas.map(n => `<option value="${n}">${n}</option>`).join('');
+}
+
+// ---- Nombre de reparación ----
+const selNombre = document.getElementById('repNombre');
+if (selNombre && selNombre.options.length === 0) {
+selNombre.innerHTML = _repNombresDefault
+.map(n => `<option value="${n}">${n}</option>`).join('');
+}
+
+// ---- Método de reparación ----
+const selMetodo = document.getElementById('repMetodo');
+if (selMetodo && selMetodo.options.length === 0) {
+selMetodo.innerHTML = _repMetodosDefault
+.map(m => `<option value="${m}">${m}</option>`).join('');
+}
+
+// ---- Botones + ----
+const btnNombre = document.getElementById('btnAddNombre');
+if (btnNombre && !btnNombre._bound) {
+btnNombre._bound = true;
+btnNombre.addEventListener('click', () =>
+_addOpcionSelect('repNombre', 'Nombre de la nueva reparación:'));
+}
+const btnMetodo = document.getElementById('btnAddMetodo');
+if (btnMetodo && !btnMetodo._bound) {
+btnMetodo._bound = true;
+btnMetodo.addEventListener('click', () =>
+_addOpcionSelect('repMetodo', 'Nuevo método de reparación:'));
+}
 }
 
 function renderFallas() {
