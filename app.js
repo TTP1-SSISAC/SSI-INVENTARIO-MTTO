@@ -357,59 +357,79 @@ formIngreso.querySelector('.prov-select').addEventListener('change', e => {
   formIngreso.querySelector('.prov-ruc').value = opt ? (opt.dataset.ruc || '') : '';
 });
 
-// Último precio conocido del producto: primero busca el último ingreso registrado
-// para ese código, y si no hay ninguno, cae al precio del catálogo de PRODUCTOS.
-function getUltimoPrecio(codigo) {
-  const previos = state.ingresos.filter(i => String(i['Código Producto']) === String(codigo));
-  if (previos.length) {
-    const precio = Number(previos[previos.length - 1]['Precio Unitario']);
-    if (!isNaN(precio) && precio > 0) return precio;
-  }
-  const prod = state.productos.find(p => String(p['Código Producto']) === String(codigo));
-  return prod ? Number(prod['Total']) || 0 : 0;
+// Retorna el subtotal (precio neto sin IGV) del último ingreso del producto,
+// o el Subtotal del catálogo, o deriva del Total del catálogo dividido entre 1.18.
+function getUltimoSubtotal(codigo) {
+const previos = state.ingresos.filter(i => String(i["Código Producto"]) === String(codigo));
+if (previos.length) {
+const ult = previos[previos.length - 1];
+const sub = Number(ult["Subtotal"]);
+if (!isNaN(sub) && sub > 0) return sub;
+// compatibilidad con ingresos anteriores: deriva del precio total
+const precio = Number(ult["Precio Unitario"]);
+if (!isNaN(precio) && precio > 0) return precio / 1.18;
+}
+const prod = state.productos.find(p => String(p["Código Producto"]) === String(codigo));
+if (prod) {
+const sub = Number(prod["Subtotal"]);
+if (!isNaN(sub) && sub > 0) return sub;
+const total = Number(prod["Total"]);
+if (!isNaN(total) && total > 0) return total / 1.18;
+}
+return 0;
 }
 
-const inpProdIngreso = formIngreso.querySelector('[name="Código Producto"]');
-const inpCantIngreso = formIngreso.querySelector('[name="Cantidad Ingresada"]');
-const inpPrecioIngreso = document.getElementById('ingresoPrecioUnitario');
-const inpCostoIngreso = document.getElementById('ingresoCostoTotal');
+const inpProdIngreso   = formIngreso.querySelector("[name="Código Producto"]");
+const inpCantIngreso   = formIngreso.querySelector("[name="Cantidad Ingresada"]");
+const inpSubtotalIngreso = document.getElementById("ingresoSubtotal");
+const inpIGVIngreso    = document.getElementById("ingresoIGV");
+const inpPrecioIngreso = document.getElementById("ingresoPrecioUnitario");
+const inpCostoIngreso  = document.getElementById("ingresoCostoTotal");
 
-inpProdIngreso.addEventListener('change', () => {
-  inpPrecioIngreso.value = getUltimoPrecio(inpProdIngreso.value).toFixed(2);
-  recalcularCostoIngreso();
-  updateIngresoPreview();
+inpProdIngreso.addEventListener("change", () => {
+inpSubtotalIngreso.value = getUltimoSubtotal(inpProdIngreso.value).toFixed(2);
+recalcularCostoIngreso();
+updateIngresoPreview();
 });
-inpCantIngreso.addEventListener('input', () => { recalcularCostoIngreso(); updateIngresoPreview(); });
-inpPrecioIngreso.addEventListener('input', recalcularCostoIngreso);
+inpCantIngreso.addEventListener("input", () => { recalcularCostoIngreso(); updateIngresoPreview(); });
+inpSubtotalIngreso.addEventListener("input", recalcularCostoIngreso);
 
 function recalcularCostoIngreso() {
-  const precio = Number(inpPrecioIngreso.value) || 0;
-  const cant = Number(inpCantIngreso.value) || 0;
-  inpCostoIngreso.value = (precio * cant).toFixed(2);
+const subtotal = Number(inpSubtotalIngreso.value) || 0;
+const igv      = subtotal * 0.18;
+const precioUnit = subtotal + igv;
+const cant     = Number(inpCantIngreso.value) || 0;
+inpIGVIngreso.value    = igv.toFixed(2);
+inpPrecioIngreso.value = precioUnit.toFixed(2);
+inpCostoIngreso.value  = (precioUnit * cant).toFixed(2);
 }
 
 function updateIngresoPreview() {
-  const codigo = inpProdIngreso.value;
-  const cant = Number(inpCantIngreso.value) || 0;
-  const actual = getStockDe(codigo);
-  document.getElementById('ingresoPreview').innerHTML =
-    codigo ? `Stock actual: <strong>${actual}</strong> → nuevo stock: <strong>${actual + cant}</strong>` : '';
+const codigo = inpProdIngreso.value;
+const cant = Number(inpCantIngreso.value) || 0;
+const actual = getStockDe(codigo);
+document.getElementById("ingresoPreview").innerHTML =
+codigo ? `Stock actual: <strong>${actual}</strong> → nuevo stock: <strong>${actual + cant}</strong>` : "";
 }
-formIngreso.addEventListener('submit', async e => {
-  e.preventDefault();
-  const data = formToObject(e.target);
-  const prod = state.productos.find(p => p['Código Producto'] === data['Código Producto']);
-  data['Producto'] = prod ? prod['Producto'] : '';
-  data['Marca'] = prod ? prod['Marca'] : '';
-  data['Categoría'] = prod ? prod['Categoría'] : '';
-  data['Ubicación'] = prod ? prod['Ubicación'] : '';
-  try {
-    const res = await apiPost('addIngreso', data);
-    toast(`Ingreso registrado. Nuevo stock: ${res.stockNuevo}`, 'ok');
-    e.target.reset();
-    document.getElementById('ingresoPreview').innerHTML = '';
-    await loadAll();
-  } catch (err) { toast('Error: ' + err.message, 'error'); }
+
+formIngreso.addEventListener("submit", async e => {
+e.preventDefault();
+const data = formToObject(e.target);
+const prod = state.productos.find(p => p["Código Producto"] === data["Código Producto"]);
+data["Producto"]  = prod ? prod["Producto"]  : "";
+data["Marca"]     = prod ? prod["Marca"]     : "";
+data["Categoría"] = prod ? prod["Categoría"] : "";
+data["Ubicación"] = prod ? prod["Ubicación"] : "";
+// asegurar que IGV se envíe aunque sea campo readonly (no está en FormData)
+data["IGV"] = inpIGVIngreso.value;
+try {
+const res = await apiPost("addIngreso", data);
+toast(`Ingreso registrado. Nuevo stock: ${res.stockNuevo}`, "ok");
+e.target.reset();
+recalcularCostoIngreso();
+document.getElementById("ingresoPreview").innerHTML = "";
+await loadAll();
+} catch (err) { toast("Error: " + err.message, "error"); }
 });
 
 // --- Salida ---
