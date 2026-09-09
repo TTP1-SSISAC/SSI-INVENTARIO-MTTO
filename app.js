@@ -5,7 +5,7 @@
 
 const CONFIG = {
   // Pega aquí la URL de tu implementación de Apps Script (termina en /exec)
-  API_URL: 'https://script.google.com/macros/s/AKfycbxaKCoTYWztCeNX1mPtTvOc1vg9sR3DHBCIooo_WvsF5nhwBY75j9i72mr9bxeTEP4E/exec'
+  API_URL: 'PEGA_AQUI_TU_URL_DE_APPS_SCRIPT'
 };
 
 const state = {
@@ -133,6 +133,9 @@ function renderProductSelects() {
     `<option value="${p['Código Producto']}">${p['Código Producto']} — ${p['Producto']} (stock: ${getStockDe(p['Código Producto'])})</option>`
   ).join('');
   document.querySelectorAll('select.prod-select').forEach(sel => { sel.innerHTML = opts; });
+  // Refresca el precio autocompletado del ingreso si ya hay un producto seleccionado por defecto
+  const selIngreso = document.querySelector('#formIngreso [name="Código Producto"]');
+  if (selIngreso && selIngreso.value) selIngreso.dispatchEvent(new Event('change'));
 
   const kFilter = document.getElementById('kardexFiltro');
   kFilter.innerHTML = '<option value="">Todos los productos</option>' +
@@ -350,10 +353,41 @@ formIngreso.querySelector('.prov-select').addEventListener('change', e => {
   const opt = e.target.selectedOptions[0];
   formIngreso.querySelector('.prov-ruc').value = opt ? (opt.dataset.ruc || '') : '';
 });
-formIngreso.addEventListener('input', updateIngresoPreview);
+
+// Último precio conocido del producto: primero busca el último ingreso registrado
+// para ese código, y si no hay ninguno, cae al precio del catálogo de PRODUCTOS.
+function getUltimoPrecio(codigo) {
+  const previos = state.ingresos.filter(i => String(i['Código Producto']) === String(codigo));
+  if (previos.length) {
+    const precio = Number(previos[previos.length - 1]['Precio Unitario']);
+    if (!isNaN(precio) && precio > 0) return precio;
+  }
+  const prod = state.productos.find(p => String(p['Código Producto']) === String(codigo));
+  return prod ? Number(prod['Total']) || 0 : 0;
+}
+
+const inpProdIngreso = formIngreso.querySelector('[name="Código Producto"]');
+const inpCantIngreso = formIngreso.querySelector('[name="Cantidad Ingresada"]');
+const inpPrecioIngreso = document.getElementById('ingresoPrecioUnitario');
+const inpCostoIngreso = document.getElementById('ingresoCostoTotal');
+
+inpProdIngreso.addEventListener('change', () => {
+  inpPrecioIngreso.value = getUltimoPrecio(inpProdIngreso.value).toFixed(2);
+  recalcularCostoIngreso();
+  updateIngresoPreview();
+});
+inpCantIngreso.addEventListener('input', () => { recalcularCostoIngreso(); updateIngresoPreview(); });
+inpPrecioIngreso.addEventListener('input', recalcularCostoIngreso);
+
+function recalcularCostoIngreso() {
+  const precio = Number(inpPrecioIngreso.value) || 0;
+  const cant = Number(inpCantIngreso.value) || 0;
+  inpCostoIngreso.value = (precio * cant).toFixed(2);
+}
+
 function updateIngresoPreview() {
-  const codigo = formIngreso.querySelector('[name="Código Producto"]').value;
-  const cant = Number(formIngreso.querySelector('[name="Cantidad Ingresada"]').value) || 0;
+  const codigo = inpProdIngreso.value;
+  const cant = Number(inpCantIngreso.value) || 0;
   const actual = getStockDe(codigo);
   document.getElementById('ingresoPreview').innerHTML =
     codigo ? `Stock actual: <strong>${actual}</strong> → nuevo stock: <strong>${actual + cant}</strong>` : '';

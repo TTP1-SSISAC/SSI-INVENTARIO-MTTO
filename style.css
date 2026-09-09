@@ -132,6 +132,7 @@ tbody tr:hover{ background:#F7F9FA; }
   border-radius:var(--radius); background:#fff; color:var(--ink);
 }
 .grid-form input:focus, .grid-form select:focus{ outline:2px solid var(--amber); outline-offset:0; border-color:var(--amber); }
+.grid-form input[readonly]{ background:var(--line-soft); color:var(--ink-soft); }
 .filter-select{ font-family:inherit; font-size:13px; padding:8px 10px; border:1px solid var(--line); border-radius:var(--radius); background:#fff; min-width:200px; }
 
 .form-actions{ grid-column:1/-1; display:flex; justify-content:flex-end; align-items:center; gap:14px; margin-top:6px; }
