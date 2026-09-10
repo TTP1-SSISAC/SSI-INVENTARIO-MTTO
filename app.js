@@ -577,14 +577,40 @@ recalcularCostoIngreso();
 updateIngresoPreview();
 });
 inpCantIngreso.addEventListener('input', () => { recalcularCostoIngreso(); updateIngresoPreview(); });
-inpSubtotalIngreso.addEventListener('input', recalcularCostoIngreso);
+
+let _recalcLock = false;
+
+inpSubtotalIngreso.addEventListener('input', () => {
+if (_recalcLock) return;
+_recalcLock = true;
+const subtotal = Number(inpSubtotalIngreso.value) || 0;
+const igv = subtotal * 0.18;
+const precio = subtotal + igv;
+const cant = Number(inpCantIngreso.value) || 0;
+inpIGVIngreso.value    = igv.toFixed(2);
+inpPrecioIngreso.value = precio.toFixed(2);
+inpCostoIngreso.value  = (precio * cant).toFixed(2);
+_recalcLock = false;
+});
+
+inpPrecioIngreso.addEventListener('input', () => {
+if (_recalcLock) return;
+_recalcLock = true;
+const precio = Number(inpPrecioIngreso.value) || 0;
+const subtotal = precio / 1.18;
+const igv = precio - subtotal;
+const cant = Number(inpCantIngreso.value) || 0;
+inpSubtotalIngreso.value = subtotal.toFixed(2);
+inpIGVIngreso.value      = igv.toFixed(2);
+inpCostoIngreso.value    = (precio * cant).toFixed(2);
+_recalcLock = false;
+});
 
 function recalcularCostoIngreso() {
 const subtotal = Number(inpSubtotalIngreso.value) || 0;
 const igv      = subtotal * 0.18;
 const precioUnit = subtotal + igv;
 const cant     = Number(inpCantIngreso.value) || 0;
-
 inpIGVIngreso.value    = igv.toFixed(2);
 inpPrecioIngreso.value = precioUnit.toFixed(2);
 inpCostoIngreso.value  = (precioUnit * cant).toFixed(2);
