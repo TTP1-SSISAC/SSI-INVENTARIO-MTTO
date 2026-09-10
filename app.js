@@ -139,6 +139,7 @@ document.querySelectorAll('[data-cancel]').forEach(b => b.addEventListener('clic
 
 function renderAll() {
 renderProductSelects();
+renderSalidaSelects();
 renderInvDashboard();
 renderProductos();
 renderKardex();
@@ -147,6 +148,36 @@ renderMantenimiento();
 renderFallaCatalogo();
 renderFallas();
 renderMantenimientoForm();
+}
+
+function renderSalidaSelects() {
+// Placas: tractos + carretas
+const selPlaca = document.getElementById('salidaPlaca');
+if (selPlaca) {
+const placas = [
+...state.tracto.map(t => ({ placa: t['PLACA'] || t['Placa'] || '', tipo: 'Tracto' })),
+...state.carretas.map(c => ({ placa: c['PLACA'] || c['Placa'] || '', tipo: 'Carreta' }))
+].filter(p => p.placa);
+selPlaca.innerHTML = '<option value="">— Selecciona placa —</option>' +
+placas.map(p => `<option value="${p.placa}">${p.placa} (${p.tipo})</option>`).join('');
+}
+
+// Personal: conductores + personal (nombre y apellidos)
+const selPersonal = document.getElementById('salidaPersonal');
+if (selPersonal) {
+const personas = [
+...state.conductores.map(c =>
+[c['NOMBRES'], c['APELLIDOS']].filter(Boolean).join(' ') ||
+[c['Nombres'], c['Apellidos']].filter(Boolean).join(' ')
+),
+...state.personal.map(p =>
+[p['NOMBRES'], p['APELLIDOS']].filter(Boolean).join(' ') ||
+[p['Nombres'], p['Apellidos']].filter(Boolean).join(' ')
+)
+].filter(n => n);
+selPersonal.innerHTML = '<option value="">— Selecciona personal —</option>' +
+personas.map(n => `<option value="${n}">${n}</option>`).join('');
+}
 }
 
 function fmtMoney(n) { return 'S/ ' + (Number(n) || 0).toFixed(2); }
@@ -523,8 +554,24 @@ const inpSubtotalIngreso = document.getElementById('ingresoSubtotal');
 const inpIGVIngreso    = document.getElementById('ingresoIGV');
 const inpPrecioIngreso = document.getElementById('ingresoPrecioUnitario');
 const inpCostoIngreso  = document.getElementById('ingresoCostoTotal');
+const inpMarcaIngreso  = document.getElementById('ingresoMarca');
+const inpCatIngreso    = document.getElementById('ingresoCategoría');
+const inpUbicIngreso   = document.getElementById('ingresoUbicacion');
+const inpFechaIngreso  = document.getElementById('ingresoFecha');
+
+// Poner fecha/hora actual al cargar
+function setFechaIngresoAhora() {
+const now = new Date();
+const pad = n => String(n).padStart(2, '0');
+inpFechaIngreso.value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+}
+setFechaIngresoAhora();
 
 inpProdIngreso.addEventListener('change', () => {
+const prod = state.productos.find(p => String(p['Código Producto']) === String(inpProdIngreso.value));
+inpMarcaIngreso.value  = prod ? (prod['Marca']     || '') : '';
+inpCatIngreso.value    = prod ? (prod['Categoría'] || '') : '';
+inpUbicIngreso.value   = prod ? (prod['Ubicación'] || '') : '';
 inpSubtotalIngreso.value = getUltimoSubtotal(inpProdIngreso.value).toFixed(2);
 recalcularCostoIngreso();
 updateIngresoPreview();
@@ -566,6 +613,8 @@ const res = await apiPost('addIngreso', data);
 toast(`Ingreso registrado. Nuevo stock: ${res.stockNuevo}`, 'ok');
 e.target.reset();
 recalcularCostoIngreso();
+inpMarcaIngreso.value = ''; inpCatIngreso.value = ''; inpUbicIngreso.value = '';
+setFechaIngresoAhora();
 document.getElementById('ingresoPreview').innerHTML = '';
 await loadAll();
 } catch (err) { toast('Error: ' + err.message, 'error'); }
