@@ -99,15 +99,37 @@ const VIEW_TITLES = {
 'mnt-fallas-lista': 'Fallas reportadas — Mantenimiento'
 };
 
+// Títulos cortos para el topbar en móvil
+const VIEW_TITLES_SHORT = {
+'inv-dashboard': 'Panel general',
+'inv-productos': 'Productos',
+'inv-producto-form': 'Nuevo producto',
+'inv-ingreso': 'Registrar ingreso',
+'inv-salida': 'Registrar salida',
+'inv-kardex': 'Kardex',
+'mnt-dashboard': 'Flota & vencimientos',
+'mnt-registro': 'Registrar reparación',
+'mnt-historial': 'Historial',
+'mnt-falla': 'Reportar falla',
+'mnt-fallas-lista': 'Fallas reportadas'
+};
+
 function showView(view) {
 document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
 const target = document.getElementById('view-' + view);
 if (target) target.classList.remove('hidden');
-document.getElementById('viewTitle').textContent = VIEW_TITLES[view] || 'TMS SSI';
+document.getElementById('viewTitle').textContent = VIEW_TITLES_SHORT[view] || 'TMS SSI';
 document.querySelectorAll('.rail-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+// Sincronizar barra inferior
+document.querySelectorAll('.bnav-btn[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === view));
 }
 
 document.querySelectorAll('.rail-btn').forEach(btn => {
+btn.addEventListener('click', () => showView(btn.dataset.view));
+});
+
+// Barra inferior
+document.querySelectorAll('.bnav-btn[data-view]').forEach(btn => {
 btn.addEventListener('click', () => showView(btn.dataset.view));
 });
 document.getElementById('btnNuevoProducto').addEventListener('click', () => showView('inv-producto-form'));
@@ -638,5 +660,37 @@ weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-di
 }
 tickClock();
 setInterval(tickClock, 30000);
+
+/* ---------------- Menú hamburguesa (móvil) ---------------- */
+const railToggle  = document.getElementById('railToggle');
+const railSidebar = document.getElementById('railSidebar');
+const railOverlay = document.getElementById('railOverlay');
+
+function openRail() {
+  railSidebar.classList.add('open');
+  railOverlay.classList.add('show');
+  document.body.style.overflow = 'hidden';
+}
+function closeRail() {
+  railSidebar.classList.remove('open');
+  railOverlay.classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+railToggle.addEventListener('click', () =>
+  railSidebar.classList.contains('open') ? closeRail() : openRail()
+);
+railOverlay.addEventListener('click', closeRail);
+
+// Botón "Más" de la barra inferior abre el menú
+const bnavMore = document.getElementById('bnavMore');
+if (bnavMore) bnavMore.addEventListener('click', openRail);
+
+// Cerrar al cambiar de vista en móvil
+document.querySelectorAll('.rail-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (window.innerWidth <= 900) closeRail();
+  });
+});
 
 loadAll();
