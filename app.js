@@ -119,12 +119,12 @@ document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
 const target = document.getElementById('view-' + view);
 if (target) target.classList.remove('hidden');
 document.getElementById('viewTitle').textContent = VIEW_TITLES_SHORT[view] || 'TMS SSI';
-document.querySelectorAll('.rail-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+document.querySelectorAll('.rail-btn, .rail-sub-btn').forEach(b => b.classList.toggle('active', b.dataset.view === view));
 // Sincronizar barra inferior
 document.querySelectorAll('.bnav-btn[data-view]').forEach(b => b.classList.toggle('active', b.dataset.view === view));
 }
 
-document.querySelectorAll('.rail-btn').forEach(btn => {
+document.querySelectorAll('.rail-btn, .rail-sub-btn').forEach(btn => {
 btn.addEventListener('click', () => showView(btn.dataset.view));
 });
 
@@ -789,7 +789,7 @@ const bnavMore = document.getElementById('bnavMore');
 if (bnavMore) bnavMore.addEventListener('click', openRail);
 
 // Cerrar al cambiar de vista en móvil
-document.querySelectorAll('.rail-btn').forEach(btn => {
+document.querySelectorAll('.rail-btn, .rail-sub-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     if (window.innerWidth <= 900) closeRail();
   });
