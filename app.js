@@ -610,13 +610,19 @@ const inpCostoIngreso  = document.getElementById('ingresoCostoTotal');
 const inpMarcaIngreso  = document.getElementById('ingresoMarca');
 const inpCatIngreso    = document.getElementById('ingresoCategoría');
 const inpUbicIngreso   = document.getElementById('ingresoUbicacion');
+// Fecha y hora ahora van en dos inputs separados (ver PROBLEMA ZONA HORARIA más abajo)
 const inpFechaIngreso  = document.getElementById('ingresoFecha');
+const inpHoraIngreso   = document.getElementById('ingresoHora');
 
 // Poner fecha/hora actual al cargar
+// CAMBIO: se llenan como texto plano "YYYY-MM-DD" y "HH:MM" en dos campos
+// independientes, para que el backend los escriba tal cual en el Sheet
+// sin pasar por new Date() (que es lo que causaba el desfase de 2 horas).
 function setFechaIngresoAhora() {
 const now = new Date();
 const pad = n => String(n).padStart(2, '0');
-inpFechaIngreso.value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+inpFechaIngreso.value = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}`;
+inpHoraIngreso.value  = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
 }
 setFechaIngresoAhora();
 
@@ -687,6 +693,8 @@ data['Categoría'] = prod ? prod['Categoría'] : '';
 data['Ubicación'] = prod ? prod['Ubicación'] : '';
 // asegurar que IGV se envíe aunque sea campo readonly (no está en FormData)
 data['IGV'] = inpIGVIngreso.value;
+// data['Fecha Ingreso'] y data['Hora Ingreso'] ya vienen incluidos por formToObject
+// gracias a los atributos name="Fecha Ingreso" / name="Hora Ingreso" en el HTML.
 try {
 const res = await apiPost('addIngreso', data);
 toast(`Ingreso registrado. Nuevo stock: ${res.stockNuevo}`, 'ok');
