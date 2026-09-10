@@ -507,7 +507,34 @@ el.className = 'toast show ' + type;
 setTimeout(() => el.classList.remove('show'), 3200);
 }
 
-// --- Nuevo producto ---
+// --- Nuevo producto — cálculo bidireccional IGV ---
+const prodSubtotalEl = document.getElementById('prodSubtotal');
+const prodIGVEl      = document.getElementById('prodIGV');
+const prodPrecioEl   = document.getElementById('prodPrecio');
+
+let _prodRecalcLock = false;
+
+prodSubtotalEl.addEventListener('input', () => {
+if (_prodRecalcLock) return;
+_prodRecalcLock = true;
+const sub  = Number(prodSubtotalEl.value) || 0;
+const igv  = sub * 0.18;
+prodIGVEl.value    = igv.toFixed(2);
+prodPrecioEl.value = (sub + igv).toFixed(2);
+_prodRecalcLock = false;
+});
+
+prodPrecioEl.addEventListener('input', () => {
+if (_prodRecalcLock) return;
+_prodRecalcLock = true;
+const precio = Number(prodPrecioEl.value) || 0;
+const sub    = precio / 1.18;
+const igv    = precio - sub;
+prodSubtotalEl.value = sub.toFixed(2);
+prodIGVEl.value      = igv.toFixed(2);
+_prodRecalcLock = false;
+});
+
 document.getElementById('formProducto').addEventListener('submit', async e => {
 e.preventDefault();
 try {
