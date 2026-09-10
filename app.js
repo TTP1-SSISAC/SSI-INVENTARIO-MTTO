@@ -182,11 +182,37 @@ personas.map(n => `<option value="${n}">${n}</option>`).join('');
 
 function fmtMoney(n) { return 'S/ ' + (Number(n) || 0).toFixed(2); }
 
+// Instancias Tom Select activas (para destroy/reinit en cada renderAll)
+const _tsMap = new Map();
+
+function _initTomSelect(sel) {
+  if (_tsMap.has(sel)) {
+    try { _tsMap.get(sel).destroy(); } catch(e) {}
+    _tsMap.delete(sel);
+  }
+  const ts = new TomSelect(sel, {
+    create: false,
+    allowEmptyOption: false,
+    placeholder: 'Escribe para buscar...',
+    searchField: ['text'],
+    render: {
+      option: (data, escape) => `<div>${escape(data.text)}</div>`,
+      item:   (data, escape) => `<div>${escape(data.text)}</div>`,
+    }
+  });
+  _tsMap.set(sel, ts);
+  return ts;
+}
+
 function renderProductSelects() {
-const opts = state.productos.map(p =>
-`<option value="${p['Código Producto']}">${p['Código Producto']} — ${p['Producto']} (stock: ${getStockDe(p['Código Producto'])})</option>`
+const opts = '<option value="" disabled selected>— Selecciona producto —</option>' +
+  state.productos.map(p =>
+  `<option value="${p['Código Producto']}">${p['Código Producto']} — ${p['Producto']} (stock: ${getStockDe(p['Código Producto'])})</option>`
 ).join('');
-document.querySelectorAll('select.prod-select').forEach(sel => { sel.innerHTML = opts; });
+document.querySelectorAll('select.prod-select').forEach(sel => {
+  sel.innerHTML = opts;
+  _initTomSelect(sel);
+});
 // Refresca el precio autocompletado del ingreso si ya hay un producto seleccionado por defecto
 const selIngreso = document.querySelector('#formIngreso [name="Código Producto"]');
 if (selIngreso && selIngreso.value) selIngreso.dispatchEvent(new Event('change'));
