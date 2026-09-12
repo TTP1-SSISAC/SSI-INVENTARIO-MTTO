@@ -39,19 +39,6 @@ function isConfigured() {
 return CONFIG.API_URL && CONFIG.API_URL.startsWith('http');
 }
 
-/* ---------------- Utilidad genérica: debounce ----------------
-   Retrasa la ejecución de "fn" hasta que pasen "wait" ms sin que se
-   vuelva a llamar. Se usa en filtros de texto para no re-renderizar
-   la tabla en cada tecla, solo cuando el usuario hace una pausa.
-------------------------------------------------------------------- */
-function debounce(fn, wait) {
-let t;
-return function (...args) {
-clearTimeout(t);
-t = setTimeout(() => fn.apply(this, args), wait);
-};
-}
-
 /* ---------------- Carga inicial ---------------- */
 
 async function loadAll() {
@@ -75,7 +62,6 @@ personal: all.PERSONAL || [],
 conductores: all.CONDUCTORES || [],
 proveedores: all.PROVEEDORES || []
 });
-_recalcStockMap();
 setConnStatus(true, 'Conectado a Google Sheets');
 renderAll();
 } catch (err) {
@@ -89,31 +75,12 @@ el.classList.toggle('connected', ok);
 document.getElementById('connLabel').textContent = label;
 }
 
-/* ---------------- Stock helper (mismo criterio que el backend) ----------------
-   OPTIMIZACIÓN: antes, getStockDe() recorría TODO el array de kardex
-   con .filter() cada vez que se llamaba — y se llama muchas veces por
-   render (una vez por cada producto en cada select, en cada fila de la
-   factura de ingreso, etc.). Con un historial largo esto se sentía
-   como el input lento/atascado tras cualquier acción.
-
-   Ahora se calcula un Map "código -> stock final" UNA sola vez después
-   de cada loadAll() (_recalcStockMap), y getStockDe() solo hace una
-   consulta O(1) a ese mapa. El resultado es idéntico al anterior
-   (mismo criterio: el "Stock Final" del último movimiento de ese
-   producto en el Kardex, en el mismo orden en que ya venía el array).
-------------------------------------------------------------------- */
-let _stockMap = new Map();
-
-function _recalcStockMap() {
-_stockMap = new Map();
-state.kardex.forEach(k => {
-const codigo = String(k['Código Producto']);
-_stockMap.set(codigo, Number(k['Stock Final']) || 0);
-});
-}
+/* ---------------- Stock helper (mismo criterio que el backend) ---------------- */
 
 function getStockDe(codigo) {
-return _stockMap.get(String(codigo)) || 0;
+const movs = state.kardex.filter(k => String(k['Código Producto']) === String(codigo));
+if (movs.length === 0) return 0;
+return Number(movs[movs.length - 1]['Stock Final']) || 0;
 }
 
 /* ---------------- Navegación ---------------- */
@@ -545,9 +512,7 @@ tbody.innerHTML = rows.length ? rows.slice().reverse().map(m => `
 <td>${m['Kilometraje'] || '—'}</td>
 </tr>`).join('') : `<tr class="empty-row"><td colspan="8">Sin reparaciones registradas.</td></tr>`;
 }
-// OPTIMIZACIÓN: debounce de 200ms — evita re-renderizar toda la tabla
-// en cada tecla; solo redibuja cuando el usuario hace una pausa breve.
-document.getElementById('historialFiltro').addEventListener('input', debounce(e => renderMantenimiento(e.target.value), 200));
+document.getElementById('historialFiltro').addEventListener('input', e => renderMantenimiento(e.target.value));
 
 function renderFallaCatalogo() {
 // Poblar selector de Placas (tractos + carretas)
@@ -973,12 +938,7 @@ await loadAll();
 
 // --- Salida ---
 const formSalida = document.getElementById('formSalida');
-
-// OPTIMIZACIÓN: antes se escuchaba el "input" de TODO el formulario
-// (formSalida.addEventListener('input', ...)), así que escribir en
-// campos que no afectan el cálculo (como Observación) también disparaba
-// getStockDe() innecesariamente en cada tecla. Ahora solo se escucha en
-// los dos campos que realmente afectan la previsualización de stock.
+formSalida.addEventListener('input', updateSalidaPreview);
 function updateSalidaPreview() {
 const codigo = formSalida.querySelector('[name="Código Producto"]').value;
 const cant = Number(formSalida.querySelector('[name="Cantidad Entregada"]').value) || 0;
@@ -987,8 +947,6 @@ const insuficiente = cant > actual;
 document.getElementById('salidaPreview').innerHTML =
 codigo ? `Stock actual: <strong>${actual}</strong> → nuevo stock: <strong>${insuficiente ? '⚠ insuficiente' : actual - cant}</strong>` : '';
 }
-formSalida.querySelector('[name="Código Producto"]').addEventListener('input', updateSalidaPreview);
-formSalida.querySelector('[name="Cantidad Entregada"]').addEventListener('input', updateSalidaPreview);
 
 // NUEVO: fecha y hora de salida, mismo criterio que Ingreso — texto plano
 // "YYYY-MM-DD" / "HH:MM", sin pasar por new Date(), para que el backend
