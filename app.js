@@ -5,7 +5,7 @@ Consume el Google Sheet a través del Web App de Apps Script.
 
 const CONFIG = {
 // Pega aquí la URL de tu implementación de Apps Script (termina en /exec)
-API_URL: 'https://script.google.com/macros/s/AKfycbwcSuaUvR_k4ZVywU9DIApee4Jurx97dQBKMekljtcOOyDa0eqIB1nkqUH5KQOAM88Q/exec'
+API_URL: 'https://script.google.com/macros/s/AKfycbxnLH2BdELAWXkramRuLrnCHzRo8W3jydu-XV1xE3OXcxEEUD0cJkGx8vjNnvROeguw/exec'
 };
 
 const state = {
